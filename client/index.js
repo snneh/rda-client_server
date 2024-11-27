@@ -1,16 +1,44 @@
-const os = require("os");
+const axios = require("axios");
+const readline = require("readline");
+const stun = require("stun");
 
-const interfaces = os.networkInterfaces();
-const addresses = [];
-for (const name of Object.keys(interfaces)) {
-  for (const iface of interfaces[name]) {
-    if ("IPv4" !== iface.family || iface.internal !== false) {
-      continue;
-    }
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
 
-    addresses.push(iface.address);
+const getPublicIP = async () => {
+  try {
+    const response = await stun.request("stun.l.google.com:19302");
+    const { address } = response.getXorAddress();//apparantly this is the public ip
+    return address;
+  } catch (error) {
+    console.error("Error getting public IP:", error);
+    return null;
   }
-}
+};
 
-const myIP = addresses[0];
-console.log(myIP);
+getPublicIP().then((publicIP) => {
+  if (publicIP) {
+    console.log("Public IP:", publicIP);
+  } else {
+    console.log("Failed to retrieve public IP.");
+  }
+});
+
+rl.question("Please enter the code: ", (cd) => {
+  const getIp = async () => {
+    try {
+      const response = await axios.post("http://localhost:3000/getip", {
+        code: cd,
+      });
+      console.log("response", response.data);
+    } catch (error) {
+      console.error("Error sending code:", error);
+    }
+  };
+
+  getIp();
+  rl.close();
+});
+
