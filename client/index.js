@@ -29,7 +29,7 @@ getPublicIP().then((publicIP) => {
 rl.question("Please enter the code: ", (cd) => {
   const getIp = async () => {
     try {
-      const response = await axios.post("http://localhost:3000/getip", {
+      const response = await axios.post("https://signaling-server-uj5n.onrender.com/getip", {
         code: cd,
       });
       console.log("response", response.data);
