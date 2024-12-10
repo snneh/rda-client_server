@@ -14,7 +14,7 @@ app.post("/client", async (req, res) => {
 
   try {
     // Fetch public IP using STUN
-    const getPublicIP = async () => {
+    const getPublicIP = async () => {d378f9ef
       try {
         const response = await stun.request("stun.l.google.com:19302");
         const { address } = response.getXorAddress();
