@@ -1,6 +1,7 @@
 const axios = require("axios");
 const stun = require("stun");
 const express = require("express");
+const os = require("os");
 
 const app = express();
 const port = 6969;
@@ -24,17 +25,39 @@ app.post("/client", async (req, res) => {
       }
     };
 
+    // Fetch local IP using os module
+    const getLocalIP = () => {
+      const interfaces = os.networkInterfaces();
+      for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+          if (iface.family === "IPv4" && !iface.internal) {
+            return iface.address;
+          }
+        }
+      }
+      return null;
+    };
+
     const publicIP = await getPublicIP();
+    const localIP = getLocalIP();
+
     if (publicIP) {
       console.log("Public IP:", publicIP);
     } else {
       console.log("Failed to retrieve public IP.");
     }
 
+    console.log("Local IP:", localIP);
+
     // Send code to signaling server and get the response
-    const response = await axios.post("https://signaling-server-uj5n.onrender.com/getip", {
-      code: code,
-    });
+    const response = await axios.post(
+      "https://signaling-server-uj5n.onrender.com/getip",
+      {
+        code: code,
+        publicIP: publicIP,
+        localIP: localIP,
+      }
+    );
 
     console.log("Response from signaling server:", response.data);
 
@@ -47,5 +70,5 @@ app.post("/client", async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`listening at http://localhost:${port}`);
+  console.log(`Example app listening at http://localhost:${port}`);
 });
