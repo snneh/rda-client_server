@@ -3,36 +3,50 @@ import tkinter as tk
 from tkinter import messagebox
 import threading
 import pyautogui
+import requests
 
 pyautogui.FAILSAFE = False
 
 
 def type_box():
-    tp_fr = tk.Tk()
-    tp_fr.title("Python Remote Keyboard")
-    bx_txt = tk.Entry(tp_fr, width=100)
-    bx_txt.pack()
+    pop_window = tk.Tk()
+    pop_window.title("Remote Keyboard")
+    text_entered = tk.Entry(pop_window, width=100)
+    text_entered.pack()
     send_but = tk.Button(
-        tp_fr,
+        pop_window,
         text="Type Text",
-        command=lambda: conn.send(("cde:" + bx_txt.get()).encode()),
+        command=lambda: conn.send(("cde:" + text_entered.get()).encode()),
     )
     del_but = tk.Button(
-        tp_fr, text="Delete", command=lambda: conn.send(("del".encode()))
+        pop_window, text="Delete", command=lambda: conn.send(("del".encode()))
     )
-    nl_but = tk.Button(tp_fr, text="Enter", command=lambda: conn.send(("nl".encode())))
+    nl_but = tk.Button(
+        pop_window, text="Enter", command=lambda: conn.send(("nl".encode()))
+    )
     del_but.pack()
     send_but.pack()
     nl_but.pack()
-    tp_fr.mainloop()
+    pop_window.mainloop()
 
 
-host = socket.gethostbyname(socket.gethostname())
-port = 12346
+host = "0.0.0.0"
+
+url = "http://localhost:42069/server"
+
+payload = {"flag": "True"}
+response = requests.post(url, json=payload)
+
+
+response_data = response.json()
+if "code" in response_data and "port" in response_data:
+    code = response_data["code"]
+    port = response_data["port"]
+    print(f"{code}\n{port}")
 
 
 def show_details_and_wait():
-    details = f"Host: {host}\nPort: {port}"
+    details = f"Code: {code}\nPort: {port}"
     messagebox.showinfo("Network Details", details)
 
 

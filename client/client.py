@@ -5,12 +5,31 @@ from PIL import Image, ImageTk
 import io
 import threading
 import time
+import requests
 
 pg.FAILSAFE = False
 
 
-host = input("Host: ")
-port = 12346
+host = "localhost"
+port = 12345
+
+code = input("Code: ")
+url = "http://localhost:6969/client"
+
+payload = {"code": code}
+response = requests.post(url, json=payload)
+
+
+try:
+    response_data = response.json()
+    if "localIP" in response_data and "port" in response_data:
+        host = response_data["localIP"]
+        port = response_data["port"]
+    else:
+        print("Invalid response data")
+except ValueError:
+    print("Invalid JSON response")
+
 message = "done"
 
 
@@ -18,7 +37,6 @@ def setup_connection():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((host, port))
     while True:
-
         client_socket.send(message.encode())
         data = client_socket.recv(1024).decode()
 
