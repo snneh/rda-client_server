@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import pyautogui as pg
 import socket
 import tkinter as tk
@@ -16,15 +14,14 @@ port = 12346
 message = "done"
 
 
-
 def setup_connection():
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  
-    client_socket.connect((host, port))  
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect((host, port))
     while True:
 
-        client_socket.send(message.encode()) 
+        client_socket.send(message.encode())
         data = client_socket.recv(1024).decode()
-        
+
         if data == "lc":
             pg.click(x, y)
             time.sleep(0.1)
@@ -41,8 +38,9 @@ def setup_connection():
         elif data.startswith("cde:"):
             pg.write(data.replace("cde:", ""))
         else:
-            x = int(data.split(" ")[0]) 
+            x = int(data.split(" ")[0])
             y = int(data.split(" ")[1])
-            pg.moveTo(x, y)  
+            pg.moveTo(x, y)
+
 
 setup_connection()
