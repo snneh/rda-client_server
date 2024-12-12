@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import socket
 import tkinter as tk
 from tkinter import messagebox
