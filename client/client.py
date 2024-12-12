@@ -17,7 +17,7 @@ code = input("Code: ")
 url = "http://localhost:6969/client"
 
 payload = {"code": code}
-response = requests.post(url, json=payload)
+response = requests.post(url, json=payload, verify=False)
 
 
 try:

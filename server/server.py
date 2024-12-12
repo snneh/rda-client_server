@@ -35,7 +35,7 @@ host = "0.0.0.0"
 url = "http://localhost:42069/server"
 
 payload = {"flag": "True"}
-response = requests.post(url, json=payload)
+response = requests.post(url, json=payload, verify=False)
 
 
 response_data = response.json()
