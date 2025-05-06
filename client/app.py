@@ -9,7 +9,7 @@ import numpy as np
 import pickle
 import struct
 import pyautogui
-from tkinter import messagebox
+from tkinter import messagebox, Tk
 import requests
 
 
@@ -27,7 +27,7 @@ if "code" in response_data and "port" in response_data:
 
 
 def show_details_and_wait():
-    details = f"Code: {code}\n"
+    details = f"CODE: {code}\n"
     messagebox.showinfo("Network Details", details)
 
 
@@ -175,11 +175,14 @@ def handle_screenshare(client_socket, client_addr):
 
 
 def main():
+    root = Tk()
+    root.withdraw()
+
     # Create TCP socket for main connection
     main_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     main_server.bind(("0.0.0.0", PORT))
     main_server.listen(5)
-    print(f"Server IP: {socket.gethostbyname(socket.gethostname())}")
+    print(f"Client IP: {socket.gethostbyname(socket.gethostname())}")
 
     mouse_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     keyboard_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -189,7 +192,8 @@ def main():
     keyboard_socket.bind(("0.0.0.0", 5002))
     screenshare_socket.bind(("0.0.0.0", 5003))
 
-    print("Main server listening.")
+    print("Remote Host is listening.")
+    show_details_and_wait()
 
     mouse_socket.listen()
     keyboard_socket.listen()
