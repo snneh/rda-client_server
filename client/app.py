@@ -9,7 +9,9 @@ import pickle
 import struct
 from tkinter import messagebox, Tk, simpledialog
 import requests
+import pyautogui
 
+WIDTH, HEIGHT = pyautogui.size()
 
 HOST = "localhost"
 PORT = 12345
@@ -57,13 +59,20 @@ def mouse_tracker(mouse_socket):
     try:
 
         def on_move(x, y):
-            data = {"type": "move", "x": x, "y": y}
+            norm_x = x / WIDTH
+            norm_y = y / HEIGHT
+            data = {"type": "move", "x": norm_x, "y": norm_y}
+            print(f"normalized x : {data["x"]}, normalized y : {data["y"]}")
             send_data(mouse_socket, data)
 
         def on_click(x, y, button, pressed):
             if pressed:
+
                 action = "click" if button == mouse.Button.left else "rightclick"
-                data = {"type": action, "x": x, "y": y}
+                norm_x = x / WIDTH
+                norm_y = y / HEIGHT
+                data = {"type": action, "x": norm_x, "y": norm_y}
+                print(f"normalized x : {data["x"]}, normalized y : {data["y"]}")
                 send_data(mouse_socket, data)
 
         with mouse.Listener(on_move=on_move, on_click=on_click) as listener:
@@ -74,6 +83,8 @@ def mouse_tracker(mouse_socket):
 
 # Set of currently pressed keys
 pressed_keys = set()
+# Lock for thread safety
+pressed_keys_lock = threading.Lock()
 
 
 # Mapping for special keys
@@ -90,21 +101,32 @@ def keyboard_tracker(keyboard_socket):
     def on_press(key):
         try:
             k = format_key(key)
-            if k not in pressed_keys:
-                pressed_keys.add(k)
 
-                # Send combination if multiple are held (e.g., ctrl + c)
-                if len(pressed_keys) > 1:
-                    send_data(keyboard_socket, {"key": list(pressed_keys)})
-                else:
-                    send_data(keyboard_socket, {"key": k})
+            with pressed_keys_lock:
+                if k not in pressed_keys:
+                    pressed_keys.add(k)
+
+                    # Send combination if multiple keys are held
+                    if len(pressed_keys) > 1:
+                        # Sort keys for consistent ordering (modifiers first)
+                        sorted_keys = sort_key_combination(list(pressed_keys))
+                        send_data(keyboard_socket, {"key": sorted_keys})
+                    else:
+                        send_data(keyboard_socket, {"key": k})
+
         except Exception as e:
             print(f"Keyboard error on press: {e}")
 
     def on_release(key):
         try:
             k = format_key(key)
-            pressed_keys.discard(k)
+
+            with pressed_keys_lock:
+                pressed_keys.discard(k)
+
+                # Optional: Send release event for key combinations
+                # This can help with precise timing on the receiving end
+
         except Exception as e:
             print(f"Keyboard error on release: {e}")
 
@@ -112,14 +134,47 @@ def keyboard_tracker(keyboard_socket):
         listener.join()
 
 
-def screenshare_tracker(screenshare_socket):
-    while True:
-        # Simulate sending screen data (e.g., as a placeholder)
-        try:
-            cv2.namedWindow("Remote Screen", cv2.WINDOW_NORMAL)
+def sort_key_combination(keys):
+    """Sort keys to put modifiers first for consistent key combinations"""
+    modifier_order = [
+        "ctrl_l",
+        "ctrl_r",
+        "ctrl",
+        "alt_l",
+        "alt_r",
+        "alt",
+        "shift_l",
+        "shift_r",
+        "shift",
+        "cmd_l",
+        "cmd_r",
+        "cmd",
+    ]
 
-            # Optional: Set initial window size
-            cv2.resizeWindow("Remote Screen", 800, 600)
+    modifiers = []
+    regular_keys = []
+
+    for key in keys:
+        if key in modifier_order:
+            modifiers.append(key)
+        else:
+            regular_keys.append(key)
+
+    # Sort modifiers by their defined order
+    modifiers.sort(
+        key=lambda x: modifier_order.index(x) if x in modifier_order else 999
+    )
+
+    return modifiers + sorted(regular_keys)
+
+
+def screenshare_tracker(screenshare_socket):
+    try:
+        cv2.namedWindow("Remote Screen", cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty(
+            "Remote Screen", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN
+        )
+        while True:
             # Receiving loop
             data = b""
             payload_size = struct.calcsize("L")
@@ -146,14 +201,14 @@ def screenshare_tracker(screenshare_socket):
 
                 # Display frame
                 cv2.imshow("Remote Screen", frame)
-
                 # Exit on 'q' key press
                 if cv2.waitKey(1) & 0xFF == 27:
+                    cv2.destroyAllWindows()
                     break
 
-        except Exception as e:
-            print(f"Screenshare error: {e}")
-            break
+    except Exception as e:
+        print(f"Screenshare error: {e}")
+        return
 
 
 def main():
@@ -221,6 +276,7 @@ def main():
             keyboard_socket.close()
             screenshare_socket.close()
             main_socket.close()
+            return
         except Exception as cleanup_error:
             print(f"Error during cleanup: {cleanup_error}")
 
